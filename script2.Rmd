@@ -1,0 +1,60 @@
+---
+title: "Capitulo 2"
+author: "Samuel Martins de Medeiros"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Questão 2.4
+
+Load the ca20 data-set with data(ca20). Check the data-set documentation with help(ca20). Perform an exploratory analysis of these data. Would you include a trend term in the model? Would you recommend a data transformation? Is there evidence of spatial correlation
+
+1. Carregando o pacote e o conjunto de dados, checando documentação
+
+```{r cars, message=FALSE, warning=FALSE}
+library(geoR)
+data(ca20)
+#help(ca20)
+```
+2. Análise exploratória
+Pela documentação descobrimos que o conjunto de dados contém o teor de cálcio medido em amostras de solo retiradas da camada de 0-20 cm em 178 localidades dentro de uma área de estudo dividida em três subáreas. A elevação em cada local também foi registrada.
+
+A primeira região é tipicamente inundada durante a estação das chuvas e não é utilizada como área experimental. Os níveis de cálcio representariam o conteúdo natural na região. A segunda região recebeu fertilizantes há algum tempo e é tipicamente ocupada por campos de arroz. A terceira região recebeu fertilizantes recentemente e é frequentemente usada como área experimental.
+
+```{r message=FALSE, warning=FALSE}
+summary(ca20)
+plot(ca20)
+```
+O conjunto aparenta a necessidade de um termo de tendência, pelo segundo plot.
+
+```{r echo=FALSE}
+plot(ca20, trend = ~area)
+
+```
+
+
+Podemos perceber que o conjunto agora apresenta resíduos normalmente distribuidos com média zero, com variância constante e tomando como base apenas os plots, não aparentam viés, o que podemos ter como indícios de que não existe necessidade de uma transformação no conjunto de dados, apenas o termo de tendência.
+
+
+## Questão 2.5
+
+Load the Paraná data with data(parana) and repeat Exercise 2.4
+
+1. Carregando o pacote e o conjunto de dados, checando documentação
+
+Pela documentação os dados referem-se à média de precipitação ao longo de diferentes anos para o período de maio a junho (estação seca). Eles foram coletados em 143 estações de registro em todo o estado do Paraná, Brasil.
+
+```{r pressure, echo=FALSE}
+data("parana")
+#help(parana)
+```
+2. Análise exploratória
+
+```{r}
+plot(parana)
+```
+
+Claramente vemos pelos residuos e coordenadas a necessidade da adição de um termo de tendência, bem como a aplicação de uma tranformação nos dados.

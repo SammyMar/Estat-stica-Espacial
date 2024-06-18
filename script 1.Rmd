@@ -1,0 +1,60 @@
+---
+title: "Exercícios Capitulo 1"
+author: "Samuel Martins de Medeiros"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1.1  Produce a plot of the Rongelap data in which a continuous colour scale or grey scale is used to indicate the value of the emission count per unit time at each location, and the two sub-areas with the 5 by 5 sub-grids at 50 metre spacing are shown as insets.
+
+```{r}
+library(geoR)
+points(rongelap, cex.min = 1, cex.max = 1, col = "gray", ylim = c(-7000, 2000))
+rongwest <- subarea(rongelap, xlim = c(-6300, -4800))
+rongwest.z <- zoom.coords(rongwest, xzoom = 3.5, xoff = 1000, yoff = 3000)
+points(rongwest.z, add = T, cex.min = 1, cex.max = 1, col = "gray")
+rect.coords(rongwest$sub, lty = 2, quiet = T)
+rect.coords(rongwest.z$sub, lty = 2, quiet = T)
+text(-4000, 1200, "western area", cex = 1.2)
+
+
+
+
+rongest <- subarea(rongelap, xlim = c(-1000, -200), ylim = c(-2300, -1000))
+rongest.z <- zoom.coords(rongest, xzoom = 3.5, xoff = -1000, yoff = -3200)
+points(rongest.z, add = T, cex.min = 1, cex.max = 1, col = "gray")
+rect.coords(rongest$sub, lty = 2, quiet = T)
+rect.coords(rongest.z$sub, lty = 2, quiet = T)
+text(-4000, -6000, "eastern area",cex=1.2)
+```
+
+## 1.2 Construct a polygonal approximation to the boundary of The Gambia. Construct plots of the malaria data which show the spatial variation in the values of the observed prevalence in each village and of the greenness covariate.
+
+```{r}
+library(geoR)
+data(gambia)
+gambia.map()
+
+```
+
+
+## 1.3. Consider the elevation data as a simple regression problem with elevation as the response and north-south location as the explanatory variable. Fit the standard linear regression model using ordinary least squares. Examine the residuals from the linear model, with a view to deciding whether any more sophisticated treatment of the spatial variation in elevation might be necessary.
+
+
+```{r}
+data(elevation)
+elevation
+fit <- lm(elevation$data ~ elevation$coords)
+par(mfrow = c(2,2))
+plot(fit)
+summary(fit)
+fit2 <- lm(elevation$data ~ elevation$coords[,2])
+par(mfrow = c(2,2))
+fit2 |> plot()
+summary(fit2)
+points(elevation )
+```
+
