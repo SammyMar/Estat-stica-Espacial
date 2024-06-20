@@ -13,6 +13,8 @@ library(rgeos)
 library(tmap)
 library(tmaptools)
 library(spgwr)
+library(grid)
+library(leaflet)
 # SIM- F10-19 -------------------------------------------------------------
 sim <- microdatasus::fetch_datasus(2022,1,2022,12,information_system = 'SIM-DO')
 vars <- c('CAUSABAS','CODMUNRES',
@@ -82,18 +84,24 @@ str(br_states)
 # Adicionar os dados de taxa de morte ao shapefile
 br_states <- br_states %>%
   left_join(var_resposta_agreg, by = c("sigla" = "uf_join"))
-
+br_states <- readRDS('dados/br_states.rds')
 # Criar o mapa usando ggplot2
-ggplot(data = br_states) +
-  geom_sf(aes(fill = taxa_morte), color = "white") +
-  scale_fill_viridis_c(option = "plasma", na.value = "grey50") +
-  labs(title = "Taxa de morte por uso de drogas para o ano de 2022",
-       fill = "Taxa de Morte * 1000",
+mapa_taxa <- ggplot(data = br_states) +
+  geom_sf(aes(fill = taxa_morte), color = 'white') +
+  scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "grey50") +
+  labs(title = "Proporção de morte por uso de psicoativos para o ano de 2022",
+       fill = "Morte por psicoativos x 1000\n--------------------------------------\n            Mortes totais",
        caption = "Dados obtidos pelo SIM") +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(legend.position = "right")
 
+mapa_taxa
 
+# Criar a pasta se ela não existir
+if (!dir.exists('graficos')) {
+  dir.create('graficos')
+}
+ggsave("graficos/mapa_morte_psicoativos.png", mapa_taxa, width = 12, height = 8, dpi = 300)
 # Indice de Moran global ---------------------------------------------------------
 # Indice global
 par(mfrow = c(1,2))
@@ -109,9 +117,17 @@ nb <- poly2nb(br_states, queen=TRUE)
 lw <- nb2listw(nb, style="W", zero.policy=TRUE)
 inc.lag <- lag.listw(lw, br_states$taxa_morte)
 inc.lag
-plot(inc.lag ~  br_states$taxa_morte, pch=16, asp=1)
-abline(lm(inc.lag ~ br_states$taxa_morte), col="blue")
+# Gráfico de dispersão com linha de regressão
+plot(inc.lag ~ taxa_morte, pch = 16, asp = 1,
+     main = "Relação entre taxa de morte e Lag",  # Título do gráfico
+     xlab = "Taxa de morte",                         # Rótulo do eixo x
+     ylab = "Lag",data = br_states)                               # Rótulo do eixo y
 
+# Adicionar linha de regressão
+abline(lm(inc.lag ~ taxa_morte,data = br_states), col = "blue")
+# Salvar o gráfico em um arquivo PNG
+png("graficos/grafico_taxa_morte_inc_lag.png", width = 800, height = 600, units = "px", res = 300)
+dev.off()
 #indice de moran
 I <- moran(br_states$taxa_morte, lw, length(nb), Szero(lw))[1]
 I
@@ -120,44 +136,52 @@ moran.test(br_states$taxa_morte,lw, alternative="greater", zero.policy=TRUE)
 
 #metodo de monte carlo
 MC<- moran.mc(br_states$taxa_morte, lw, nsim = 999, alternative = "greater", zero.policy=TRUE)
-plot(MC, xlab="Moran's I")
-
+plot(MC, xlab="Indice de Moran")
+# Salvar o gráfico em um arquivo PNG
+png("graficos/Indice_de_moran_MC.png", width = 800, height = 600, units = "px", res = 300)
+dev.off()
 # indice de moran local ---------------------------------------------------
-
-local <- localmoran(x = br_states$taxa_morte, listw = lw) 
+local <- localmoran(x = br_states$taxa_morte, listw = lw)
 moran.map <- cbind(br_states, local)
-quadrant <- vector(mode="numeric",length=nrow(local))
+quadrant <- vector(mode="numeric", length=nrow(local))
 
-# centers the variable of interest around its mean
-m.qualification <- br_states$taxa_morte - mean(br_states$taxa_morte)     
+# Centraliza a variável de interesse em torno de sua média
+m.qualification <- br_states$taxa_morte - mean(br_states$taxa_morte)
 
-# centers the local Moran's around the mean
-m.local <- local[,1] - mean(local[,1])    
+# Centraliza o Moran Local em torno da média
+m.local <- local[,1] - mean(local[,1])
 
-# significance threshold
-signif <- 0.05 
+# Limite de significância
+signif <- 0.05
 
-# builds a data quadrant
-quadrant[m.qualification >0 & m.local>0] <- 4  
-quadrant[m.qualification <0 & m.local<0] <- 1      
-quadrant[m.qualification <0 & m.local>0] <- 2
-quadrant[m.qualification >0 & m.local<0] <- 3
-quadrant[local[,5]>signif] <- 0   
+# Constrói o quadrante de dados
+quadrant[m.qualification > 0 & m.local > 0] <- 4
+quadrant[m.qualification < 0 & m.local < 0] <- 1
+quadrant[m.qualification < 0 & m.local > 0] <- 2
+quadrant[m.qualification > 0 & m.local < 0] <- 3
+quadrant[local[,5] > signif] <- 0
 
-# plot in r
-brks <- c(0,1,2,3,4)
-colors <- c("white","blue",rgb(0,0,1,alpha=0.4),rgb(1,0,0,alpha=0.4),"red")
-plot(br_states |> select(c('geometry','taxa_morte')),border="lightgray",col=colors[findInterval(quadrant,brks,all.inside=FALSE)])
-box()
-legend("bottomleft", legend = c("insignificant","low-low","low-high","high-low","high-high"),
-       fill=colors,bty="n")
-ggplot(data = br_states) +
-  geom_sf(aes(fill = taxa_morte), color = colors) +
-  labs(title = "Taxa de morte por uso de drogas para o ano de 2022",
-       fill = "Taxa de Morte * 1000",
-       caption = "Dados obtidos pelo SIM") +
+# Configuração das quebras e cores
+brks <- c(0, 1, 2, 3, 4)
+colors <- viridisLite::magma(5)
+# Cria o gráfico
+Moran_local <- ggplot() +
+  geom_sf(data = br_states, aes(fill = as.factor(quadrant)), color = 'white') +
+  scale_fill_manual(values = colors,
+                    breaks = as.character(brks),
+                    labels = c("Não significativo", "Baixo-Baixo", "Baixo-Alto", "Alto-Baixo", "Alto-Alto"),
+                    name = "Quadrantes") +
+  labs(title = "Indice de Moran Local",
+       subtitle = "Taxa de Morte por Psicoativos") +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(legend.position = "right") +
+  guides(fill = guide_legend(title.position = "top", label.position = "right")) 
+
+
+ggsave("graficos/mapa_moran_local.png", Moran_local, width = 12, height = 8, dpi = 300)
+
+
+# Correlacao entre Y e covariaveis ----------------------------------------
 
 
 # Save dos dados ----------------------------------------------------------
