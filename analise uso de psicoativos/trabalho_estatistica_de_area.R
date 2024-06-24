@@ -16,7 +16,6 @@ library(spgwr)
 library(grid)
 library(leaflet)
 # SIM- F10-19 -------------------------------------------------------------
-
 sim <- microdatasus::fetch_datasus(2022,1,2022,12,information_system = 'SIM-DO')
 vars <- c('CAUSABAS','CODMUNRES',
           'DTNASC', 'DTOBITO',
@@ -182,7 +181,7 @@ Moran_local <- ggplot() +
 ggsave("graficos/mapa_moran_local.png", Moran_local, width = 12, height = 8, dpi = 300)
 
 
-#  ----------------------------------------
+# Correlacao entre Y e covariaveis ----------------------------------------
 
 
 # Save dos dados ----------------------------------------------------------
