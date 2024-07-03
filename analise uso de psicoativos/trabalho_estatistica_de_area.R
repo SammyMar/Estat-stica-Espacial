@@ -184,6 +184,7 @@ ggsave("graficos/mapa_moran_local.png", Moran_local, width = 12, height = 8, dpi
 # Correlacao entre Y e covariaveis ----------------------------------------
 
 
+
 # Save dos dados ----------------------------------------------------------
 
 # Nome da pasta
